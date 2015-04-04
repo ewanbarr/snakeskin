@@ -1,0 +1,15 @@
+[location]
+latitude:
+longitude:
+elevation:
+horizon:
+
+[type]
+mount: azel
+
+[parameters]
+north_wrap: 
+south_wrap:
+az_drive_rate:
+elv_drive_rate:
+
