@@ -1,5 +1,3 @@
-SEC_TO_DAYS = 1/86400.
-
 
 def notify(func):
     def wrapper(obj,*args,**kwargs):

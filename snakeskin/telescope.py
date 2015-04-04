@@ -1,8 +1,9 @@
 import numpy as np
 import ephem as eph
 from ConfigParser import ConfigParser
+from utils import observable,notify
 
-
+@observable
 class Telescope(eph.Observer):
     def __init__(self,lat,long,elevation,horizon):
         super(Telescope,self).__init__()
@@ -38,16 +39,15 @@ class AzAltTelescope(Telescope):
         self.wrap = 'north'
         self.az = None
         self.alt = None
-        self.az_dist = 0
-        self.alt_dist = 0
-        self.duration = 0
-    
+        self.reset()
+
     def reset(self):
         self.az_dist = 0
         self.alt_dist = 0
         self.duration = 0
-        
-    def set_position(self,az,alt,wrap='north'):
+        self.observed = []
+
+    def set_position(self,az,alt,wrap):
         super(AzAltTelescope,self).set_position(az,alt)
         self.wrap = wrap
 
@@ -88,24 +88,22 @@ class AzAltTelescope(Telescope):
     def _alt_distance(self,source):
         return source.alt - self.alt
     
-    def travel(self,source_field,colony,max_sources=100,max_duration=36000,date=eph.now()):
+    def travel(self,optimiser,date=eph.now()):
         observed = []
         self.reset()
         self.set_date(date)
-        
+        source_field = optimiser.source_field
         current_source = None
-        while self.duration < max_duration and source_count <= max_sources:
+        while self.duration < optimiser.max_duration and len(observed) <= optimiser.max_sources:
             sources = source_field.get_visible(self,exclude=observed)
-            eta = [source.attractiveness(self.date) for source in sources]
-            tau = [colony.pheremones[(current_source,source)] for source in sources]
-            idx = colony.probability(eta,tau)
-            current_source = sources[idx]
+            current_source = optimiser.select_source(current_source,sources,self.date)
             observed.append(current_source)
             self.drive_to(current_source)
             self.observe(current_source)
         return observed
+
     
-def telescope_from_config(config_file,n=1):
+def telescope_from_config(config_file):
     config = ConfigParser()
     config.read(config_file)
     lat = config.getfloat("location","latitude")
@@ -123,4 +121,5 @@ def telescope_from_config(config_file,n=1):
         max_alt = config.getfloat("parameters","max_alt")
         min_alt = config.getfloat("parameters","min_alt")
         return AzAltTelescope(lat,lon,alt,hor,nwrap,swrap,az_rate,alt_rate)
-    
+    else:
+        raise NotImplemented(mount)

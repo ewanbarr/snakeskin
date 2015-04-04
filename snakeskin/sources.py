@@ -1,15 +1,6 @@
 import numpy as np
 import ephem as eph
-from utils import observable
-
-def is_match(_lambda, pattern):
-    def wrapper(f):
-        @wraps(f)
-        def wrapped(self, *f_args, **f_kwargs):
-            if callable(_lambda) and search(pattern, (_lambda(self) or '')): 
-                f(self, *f_args, **f_kwargs)
-        return wrapped
-    return wrapper
+from utils import *
 
 class SourceField(list):
     def __init__(self,sources=None):
@@ -30,13 +21,12 @@ class Source(eph.FixedBody):
         coords = eph.Equatorial(ra,dec)
         self._ra = coords.ra
         self._dec = coords.dec
-
         self.value = lambda: 1
         
     def visible(self,telescope):
         self.compute(telescope)
         return self.alt > telescope.horizon
-
+            
     def estimated_tobs(self):
         return 600.0
 

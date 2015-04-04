@@ -1,5 +1,6 @@
 import numpy as np
 import ephem as eph
+from utils import observable
 
 class SourceField(list):
     def __init__(self,sources=None):
@@ -7,8 +8,10 @@ class SourceField(list):
         if sources:
             self.extend(sources)
         
-    def visible(self,telescope):
-        return SourceField([source for source in self if source.visible(telescope)])
+    def get_visible(self,telescope,exclude=None):
+        if exclude is None:
+            exclude = []
+        return SourceField([source for source in self if source.visible(telescope) if source not in exclude])
 
     
 class Source(eph.FixedBody):
@@ -18,11 +21,13 @@ class Source(eph.FixedBody):
         coords = eph.Equatorial(ra,dec)
         self._ra = coords.ra
         self._dec = coords.dec
-
         self.value = lambda: 1
         
     def visible(self,telescope):
+        odate = telecope.date
+        telecope.date += self.estimated_tobs()
         self.compute(telescope)
+        telescope.date = odate
         return self.alt > telescope.horizon
 
     def estimated_tobs(self):

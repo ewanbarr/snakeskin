@@ -1,8 +1,9 @@
 import numpy as np
 import ephem as eph
 from ConfigParser import ConfigParser
+from utils import observable,notify
 
-
+@observable
 class Telescope(eph.Observer):
     def __init__(self,lat,long,elevation,horizon):
         super(Telescope,self).__init__()
@@ -95,7 +96,7 @@ class AzAltTelescope(Telescope):
         
         current_source = None
         while self.duration < max_duration and source_count <= max_sources:
-            sources = source_field.observable(self,exclude=observed)
+            sources = source_field.get_visible(self,exclude=observed)
             eta = [source.attractiveness(self.date) for source in sources]
             tau = [colony.pheremones[(current_source,source)] for source in sources]
             idx = colony.probability(eta,tau)
@@ -104,8 +105,9 @@ class AzAltTelescope(Telescope):
             self.drive_to(current_source)
             self.observe(current_source)
         return observed
+
     
-def telescope_from_config(config_file,n=1):
+def telescope_from_config(config_file):
     config = ConfigParser()
     config.read(config_file)
     lat = config.getfloat("location","latitude")
@@ -123,4 +125,5 @@ def telescope_from_config(config_file,n=1):
         max_alt = config.getfloat("parameters","max_alt")
         min_alt = config.getfloat("parameters","min_alt")
         return AzAltTelescope(lat,lon,alt,hor,nwrap,swrap,az_rate,alt_rate)
-    
+    else:
+        raise NotImplemented(mount)
