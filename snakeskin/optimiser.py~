@@ -1,9 +1,10 @@
 import numpy as np
 import ephem as eph
+from utils import AttrDict
 
-class PheremoneLevels(dict):
+class Pheremones(dict):
     def __init__(self,default=0.5):
-        super(PheremoneLevels,self).__init__()
+        super(Pheremones,self).__init__()
         self.default = default
 
     def __missing__(self,key):
@@ -13,85 +14,72 @@ class PheremoneLevels(dict):
     def all_paths(self,start_node,nodes):
         return [self[(start_node,node)] for node in nodes]
 
-
-class Optimiser(object):
-    def __init__(self,telescope,sources):
+class AntColonyOptimiser(object):
+    def __init__(self,sources,telescope_type):
+        self.telescope_type = telescope_type
         self.telescopes = []
-        self.sources = None
+        self.sources = sources
         self.best_path = []
         self.best_score = 0
+        self.model = AttrDict()
+        self.model.evaporation_rate = 0.9
+        self.model.score_multiplier = 500.0
+        self.model.pheremone_weight = 1.0
+        self.model.cost_weight = 1.0
+        self.model.max_sources = 20
+        self.model.max_duration = 18000
+        self.pheremones = Pheremones()
 
-    def set_sources(self,sources):
-        self.sources = sources
-
-    def add_telescopes(self,telescopes):
-        self.telescopes.extend(telescopes)
+    def set_nagents(self,n):
+        nagents = len(self.telescopes)
+        if nagents<n:
+            self.telescopes.extend([self.telescope_type() for _ in range(n-nagents)])
     
-    def add_telescope(self,telescope):
-        self.telescopes.append(telescope)
-        
-
-class AntColonySystem(object):
-    def __init__(self,sources,telescope):
-        super(Optimiser,self).__init__(sources,telescope)
-        self.evaporation_rate = 0.9
-        self.score_multiplier = 500.0
-        self.pheremone_weight = 1.0
-        self.cost_weight = 1.0
-        self.min_level = 0.1
-        self.max_level = 2.0
-        self.pheremones = PheremoneLevels()
-        self.max_sources = 20
-        self.max_duration = 18000
-
     def probabilities(self,eta,tau):
-        a = self.pheremone_weight
-        b = self.cost_weight
+        a = self.model.pheremone_weight
+        b = self.model.cost_weight
         c = (eta**a + tau**b)
         return c/sum(c)
             
     def evaporate(self):
         for key,item in self.pheremones.items():
-            val = max(min(self.max_level,item*self.evaporation_rate),self.min_level)
+            val = item*self.model.evaporation_rate
             self.pheremones[key] = val
 
-    def travel(self):
-        # telescope agent at current epoch
-        agent = self.telescope.create_agent(self.sources,self.pheremones)
-        while epoch < max_epoch:
-            epoch = agent.step()
-        agent.update_pheremones()
-            
-    def source_selector(self,current_source,sources,epoch):
-        eta = np.array([source.attractiveness(epoch) for source in sources])
-        tau = np.array([self.pheremones[(current_source,source)] for source in sources])
-        probabilies = optimiser.probability(eta,tau)
-        
-
     def optimise(self,position,epoch=eph.now()):
-
         for telescope in self.telescopes:
-            telescope.set_date(epoch)
             telescope.set_position(*position)
-            telescope.travel(self.sources,self,self.max_sources,self.max_duration,date=epoch)
-        
-        
+            telescope.set_date(epoch)
+            telescope.travel(self)
+            
+        for telescope in self.telescopes:
+            cost = telescope.value
+            path = telescope.observed
+            self.update_pheremones(cost,path)
+            
+            score = 1./cost
+            print score,self.best_score
+            if score > self.best_score:
+                print "hit"
+                self.best_score = score
+                self.best_path = path
+                print path
+        print self.best_path
 
+    def update_pheremones(self,cost,path):
+        value = self.model.score_multiplier/cost
+        start = path[0]
+        for p in path[1:]:
+            self.pheremones[(start,p)] += value
+            start = p
+            
+            
 
-        # current epoch
-        # this will be simulated from here on 
-        simulator = self.telescope.get_simulator()
-        sources = self.sources.visible(simulator)
-        costs = simulator.costs(sources)
-        self.init_pheremones(simulator,sources)
-
-        
-
-
-        
-        
-        
-        
-        
-        
-        
+            
+     
+"""        
+def evaporate(self):
+    for key,item in self.pheremones.items():
+        val = max(min(self.max_level,item*self.evaporation_rate),self.min_level)
+        self.pheremones[key] = val
+"""

@@ -1,7 +1,8 @@
 import numpy as np
 import ephem as eph
 from ConfigParser import ConfigParser
-from utils import observable,notify
+from functools import partial
+from utils import *
 
 @observable
 class Telescope(eph.Observer):
@@ -14,7 +15,7 @@ class Telescope(eph.Observer):
         self.dec_limit = lat + (np.pi-horizon)
         self.compute_pressure()
 
-    def set_date(self,date):
+    def set_date(self,date=eph.now()):
         self.date = date
     
     def set_position(self,az,alt):
@@ -22,7 +23,7 @@ class Telescope(eph.Observer):
         self.alt = alt
 
     def observe(self,source):
-        self.date += source.estimated_tobs * SEC_TO_DAYS
+        self.date += source.maximum_tobs * SEC_TO_DAYS
 
 
 class AzAltTelescope(Telescope):
@@ -46,6 +47,7 @@ class AzAltTelescope(Telescope):
         self.alt_dist = 0
         self.duration = 0
         self.observed = []
+        self.value = 0
 
     def set_position(self,az,alt,wrap):
         super(AzAltTelescope,self).set_position(az,alt)
@@ -83,27 +85,37 @@ class AzAltTelescope(Telescope):
             self.wrap = "south"
         elif a > self.wrap_limits["mid"] > b:
             self.wrap = "north"
-        return d
+        return abs(d)
         
     def _alt_distance(self,source):
-        return source.alt - self.alt
+        return abs(source.alt - self.alt)
     
-    def travel(self,optimiser,date=eph.now()):
-        observed = []
+    def attractiveness(self,source):
+        value = source.value(self)
+        az_dist,elv_dist,duration = self.estimate_drive(source)
+        return value/duration
+
+    def travel(self,optimiser):
         self.reset()
-        self.set_date(date)
-        source_field = optimiser.source_field
+        source_field = optimiser.sources
+        model = optimiser.model
         current_source = None
-        while self.duration < optimiser.max_duration and len(observed) <= optimiser.max_sources:
-            sources = source_field.get_visible(self,exclude=observed)
-            current_source = optimiser.select_source(current_source,sources,self.date)
-            observed.append(current_source)
+        while self.duration < model.max_duration and len(self.observed) <= model.max_sources:
+            sources = source_field.get_visible(self,exclude=self.observed)
+            if not sources:
+                break
+            eta = np.array([self.attractiveness(source) for source in sources])
+            tau = np.array([optimiser.pheremones[(current_source,source)] for source in sources])
+            probs = optimiser.probabilities(eta,tau)
+            idx = select_from(probs)
+            current_source = sources[idx]
+            self.value += eta[idx]
+            self.observed.append(current_source)
             self.drive_to(current_source)
             self.observe(current_source)
-        return observed
 
     
-def telescope_from_config(config_file):
+def telescope_type_from_config(config_file):
     config = ConfigParser()
     config.read(config_file)
     lat = config.getfloat("location","latitude")
@@ -120,6 +132,10 @@ def telescope_from_config(config_file):
         alt_rate = config.getfloat("parameters","alt_drive_rate")
         max_alt = config.getfloat("parameters","max_alt")
         min_alt = config.getfloat("parameters","min_alt")
-        return AzAltTelescope(lat,lon,alt,hor,nwrap,swrap,az_rate,alt_rate)
+        return partial(AzAltTelescope,lat,lon,alt,hor,nwrap,swrap,az_rate,alt_rate)
     else:
         raise NotImplemented(mount)
+
+    def telescope_from_config(config_file):
+        return telescope_type_from_config(config_file)()
+    

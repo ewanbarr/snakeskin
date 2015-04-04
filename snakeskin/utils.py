@@ -1,5 +1,6 @@
-SEC_TO_DAYS = 1/86400.
+import numpy as np
 
+SEC_TO_DAYS = 1/86400.
 
 def notify(func):
     def wrapper(obj,*args,**kwargs):
@@ -26,6 +27,13 @@ def observable(cls):
     cls.notify_observers = notify_observers
     return cls
 
+
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+
 class Observer(object):
     def __init__(self,observable):
         observable.register_observer(self)
@@ -34,3 +42,10 @@ class Observer(object):
         print func_name,args,kwargs
 
 
+def select_from(probs):
+    r,s = np.random.uniform(0, 1),0
+    for idx,prob in enumerate(probs):
+        s += prob
+        if s >= r:
+            return idx
+    return idx
