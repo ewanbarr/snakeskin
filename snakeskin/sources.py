@@ -21,7 +21,7 @@ class Source(eph.FixedBody):
         self._ra = coords.ra
         self._dec = coords.dec
         self.minimum_tobs = 300.0
-        self.maximum_tobs = 900.0
+        self.maximum_tobs = 300.0
 
     def visible(self,telescope):
         self.compute(telescope)

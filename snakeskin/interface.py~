@@ -10,7 +10,6 @@ class CustomEntry(tk.Frame):
         tk.Frame.__init__(self,parent)
         self.var = tk.StringVar()
         self.var.set(str(default))
-        label = label.replace("_"," ").capitalize()
         self.label = tk.Label(self,text=label,justify=tk.LEFT,width=20)
         self.label.pack(side=tk.LEFT,padx=5,anchor="e",fill=tk.BOTH)
         self.entry = tk.Entry(self,textvariable=self.var)
@@ -25,8 +24,10 @@ class ParameterController(tk.Frame):
         tk.Label(self,text=self.__class__.__name__).pack()
         #self.labels_frame = tk.Frame(self)
         #self.labels_frame.pack(side=tk.LEFT)
-        
         self.params = {}
+
+    def _keytransform(self,key):
+        return key.replace("_"," ").capitalize()
 
     def _clear_params(self):
         for name in self.params.keys():
@@ -36,8 +37,18 @@ class ParameterController(tk.Frame):
     def set_params(self,params):
         self._clear_params()
         for name,value in params.items():
-            self.params[name] = CustomEntry(self,name,value)
+            self.params[name] = CustomEntry(self,self._keytransform(name),value)
             self.params[name].pack(side=tk.TOP,anchor="n")
+
+    def get_params(self):
+        result = {}
+        for key,widget in self.params.items():
+            try:
+                result[key] = float(widget.var.get())
+            except:
+                pass
+        return result
+
 
 class ViewerWindow(tk.Frame):
     def __init__(self,parent):
@@ -53,19 +64,28 @@ class ViewerWindow(tk.Frame):
         self.ax.set_theta_direction(-1)
         self.canvas.show()
         self.points = None
-        
+        self.path = None
+
     def plot_sources(self,sources):
         if self.points:
             self.points.remove()
         az,za = np.array([(i.az,np.pi/2-i.alt) for i in sources]).transpose()
         self.points = self.ax.scatter(az,za)
         self.ax.set_rlim(0,np.pi/2)
+
+    def plot_path(self,sources):
+        if self.path:
+            self.path.remove()
+        az,za = np.array([(i.az,np.pi/2-i.alt) for i in sources]).transpose()
+        self.path = self.ax.plot(az,za)[0]
+        self.canvas.draw()
+                
             
 class BestPathWindow(tk.Frame):
     def __init__(self,parent):
         tk.Frame.__init__(self,parent)
         tk.Label(self,text=self.__class__.__name__).pack()
-        self.path = tk.Listbox(self)
+        self.path = tk.Listbox(self,height=20,borderwidth=4)
         self.path.pack(fill=tk.BOTH,expand=1)
 
     def set_path(self,sources):
@@ -78,17 +98,12 @@ class ControlsWindow(tk.Frame):
     def __init__(self,parent):
         tk.Frame.__init__(self,parent)
         tk.Label(self,text=self.__class__.__name__).pack()
-    
-        self.start = tk.Button(self,text="start",command=self.start)
-        self.start.pack(side=tk.LEFT)
-        self.stop = tk.Button(self,text="stop",command=self.stop)
-        self.stop.pack(side=tk.LEFT)
-        
-    def start(self):
-        print "start"
+        self.controls = {}
 
-    def stop(self):
-        print "stop"
+    def add_control(self,text,callback):
+        self.controls[text] = tk.Button(self,text=text,command=callback)
+        self.controls[text].pack(side=tk.LEFT)
+        
 
 class MasterWindow(tk.Frame):
     def __init__(self,parent):

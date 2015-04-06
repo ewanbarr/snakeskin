@@ -2,84 +2,103 @@ import numpy as np
 import ephem as eph
 from utils import AttrDict
 
+DEFAULT_MODEL = {
+    "evaporation_rate":0.9,
+    "pheremone_multiplier":500.0,
+    "pheremone_weight":1.0,
+    "attractiveness_weight":1.0,
+    "max_sources":20,
+    "max_duration":18000,
+    "num_agents":20,
+    }
+
 class Pheremones(dict):
-    def __init__(self,default=0.5):
+    def __init__(self,model_params={}):
         super(Pheremones,self).__init__()
-        self.default = default
+        self.update_params(model_params)
+
+    def update_params(self,model_params)
+        self.default = model_params.get("pheremone_init_value",0.5)
+        self.min = model_params.get("pheremone_min_value",0.0)
+        self.max = model_params.get("pheremone_max_value",np.inf)
+        self.rho = model_params.get("evaporation_rate",0.9)
+        self.Q = model_params.get("pheremone_multiplier",500.0) 
+
+    def update_trail(self,path,cost):
+        val = self.Q / cost
+        for a,b in zip(path[:-1],path[1:]):
+            self.pheremones[(a,b)] += val
+
+    def evaporate(self):
+        for key in self.iterkeys():
+            self[key]*=self.rho
 
     def __missing__(self,key):
         self.__setitem__(key,self.default)
         return self.default
+    
+    def __setitem__(self,key,val):
+        val = min(max(self.min,val),self.max)
+        super(Pheremones,self).__setitem__(self,key,val)
 
     def all_paths(self,start_node,nodes):
         return [self[(start_node,node)] for node in nodes]
 
+
 class AntColonyOptimiser(object):
-    def __init__(self,sources,telescope_type):
-        self.telescope_type = telescope_type
+    def __init__(self, sources, evaluator, 
+                 telescope_params, 
+                 model_params = DEFAULT_MODEL):
+        self.telescope_params = telescope_params
+        self.model = AttrDict(model_params)
+        self.pheremones = Pheremones(self.model)
         self.telescopes = []
         self.sources = sources
+        self.evaluator = evaluator
+        self.pheremones = Pheremones(self.model)
         self.best_path = []
         self.best_score = 0
-        self.model = AttrDict()
-        self.model.evaporation_rate = 0.9
-        self.model.score_multiplier = 500.0
-        self.model.pheremone_weight = 1.0
-        self.model.cost_weight = 1.0
-        self.model.max_sources = 20
-        self.model.max_duration = 18000
-        self.pheremones = Pheremones()
+        
+    def update(self,params):
+        self.model.update(params):
+        self.pheremones.update_params(params)
 
     def set_nagents(self,n):
         nagents = len(self.telescopes)
-        if nagents<n:
-            self.telescopes.extend([self.telescope_type() for _ in range(n-nagents)])
+        self.telescopes.extend(create_telescopes(self.telescope_params,n=n-nagents))
     
     def probabilities(self,eta,tau):
         a = self.model.pheremone_weight
-        b = self.model.cost_weight
+        b = self.model.attractiveness_weight
         c = (eta**a + tau**b)
         return c/sum(c)
-            
-    def evaporate(self):
-        for key,item in self.pheremones.items():
-            val = item*self.model.evaporation_rate
-            self.pheremones[key] = val
 
-    def optimise(self,position,epoch=eph.now()):
-        for telescope in self.telescopes:
-            telescope.set_position(*position)
-            telescope.set_date(epoch)
-            telescope.travel(self)
+    def get_attractiveness(self,maintenance_cost,drive_time,source_value):
+        m,dt,v = maintenance_cost, drive_time, source_value
+        return v/(m*dt)
+    
+    def get_pheremones(self,a,b):
+        return self.pheremones[(current_source,source)]
             
-        for telescope in self.telescopes:
+    def optimise(self,position,epoch=eph.now()):
+        self.set_nagents(self.model.num_agents)
+        
+        for telescope in self.telescopes[:self.model.num_agents]:
+            telescope.travel(position,epoch,self)
+        
+        self.pheremones.evaporate()
+        for telescope in self.telescopes[:self.model.num_agents]:
             cost = telescope.value
             path = telescope.observed
-            self.update_pheremones(cost,path)
+            self.pheremones.update_trail(path,cost)
             
             score = 1./cost
-            print score,self.best_score
             if score > self.best_score:
-                print "hit"
                 self.best_score = score
                 self.best_path = path
-                print path
-        print self.best_path
+                
 
-    def update_pheremones(self,cost,path):
-        value = self.model.score_multiplier/cost
-        start = path[0]
-        for p in path[1:]:
-            self.pheremones[(start,p)] += value
-            start = p
-            
+        
             
 
-            
-     
-"""        
-def evaporate(self):
-    for key,item in self.pheremones.items():
-        val = max(min(self.max_level,item*self.evaporation_rate),self.min_level)
-        self.pheremones[key] = val
-"""
+
