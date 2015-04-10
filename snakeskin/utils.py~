@@ -1,4 +1,5 @@
 import numpy as np
+from ConfigParser import ConfigParser
 
 SEC_TO_DAYS = 1/86400.
 
@@ -28,6 +29,12 @@ def observable(cls):
     return cls
 
 
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+
 class Observer(object):
     def __init__(self,observable):
         observable.register_observer(self)
@@ -42,4 +49,10 @@ def select_from(probs):
         s += prob
         if s >= r:
             return idx
-    return idx
+    return -1
+
+def read_config(config_file):
+    config = ConfigParser()
+    config.read(config_file)
+    return config
+

@@ -34,6 +34,8 @@ class AttrDict(dict):
         super(AttrDict, self).__init__(*args, **kwargs)
         self.__dict__ = self
 
+    def pprint(self):
+        for key,item in self.items()
 
 class Observer(object):
     def __init__(self,observable):

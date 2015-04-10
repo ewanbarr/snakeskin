@@ -20,14 +20,15 @@ class Source(eph.FixedBody):
         coords = eph.Equatorial(ra,dec)
         self._ra = coords.ra
         self._dec = coords.dec
-        self.minimum_tobs = 300.0
-        self.maximum_tobs = 300.0
+        self.minimum_tobs = 1800.0
+        self.maximum_tobs = 1800.0
 
     def visible(self,telescope):
         self.compute(telescope)
         up = self.alt > telescope.horizon
         setting = telescope.next_setting(self)
         remaining = (setting - telescope.date) / SEC_TO_DAYS
+        self.remaining = remaining
         self.compute(telescope)
         return up and remaining > self.minimum_tobs
 

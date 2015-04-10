@@ -3,19 +3,13 @@ import ephem as eph
 from ConfigParser import ConfigParser
 from functools import partial
 from utils import *
+from pprint import pformat
+import logging
+logging.basicConfig(level=logging.INFO)
 
-DTYPE = [ ("source","object"),
-          ("maintenance_cost","float32"),
-          ("drive_time","float32"),
-          ("obs_date","float32"),
-          ("value","float32"),
-          ("attractiveness","float32"),
-          ("pheremone_level","float32"),
-          ("start_az","float32"),
-          ("end_az","float32"),
-          ("start_alt","float32"),
-          ("end_alt","float32")]
+#3.9425754969908628
 
+SIDEREAL_SECONDS_PER_SECOND = 0.9972621011166376
 
 @observable
 class Telescope(eph.Observer):
@@ -41,12 +35,14 @@ class Telescope(eph.Observer):
     def observe(self,source):
         self.progress_time(source.maximum_tobs)
 
-
 class AzAltTelescope(Telescope):
-    def __init__(self,lat,long,elevation,horizon,north_wrap,south_wrap,az_rate,alt_rate):
+    def __init__(self,lat,long,elevation,horizon,north_wrap,south_wrap,az_rate,alt_rate,az_cost,alt_cost):
         super(AzAltTelescope,self).__init__(lat,long,elevation,horizon)
+        self.log = logging.getLogger(self.__class__.__name__)
         self.az_rate = az_rate
         self.alt_rate = alt_rate
+        self.az_drive_cost = az_cost
+        self.alt_drive_cost = alt_cost
         midwrap = ((south_wrap+np.pi*2)+north_wrap)/2. - np.pi
         self.wrap_limits = {
             "north":north_wrap,
@@ -111,51 +107,80 @@ class AzAltTelescope(Telescope):
     def _alt_distance(self,source):
         return abs(source.alt - self.alt)
     
-    def travel(self,start_pos,epoch,optimiser):
+    def travel(self,start_pos,start_date,optimiser):
         self.az,self.alt,self.wrap = start_pos
-        self.date = epoch
-
         observed = []
         tour = []
         field = optimiser.sources
         model = optimiser.model
+        end_date = self.date + model.max_duration * SEC_TO_DAYS
         current_source = None
 
-        while self.duration < model.max_duration and len(observed) <= model.max_sources:
-            
-            start_date = self.date
+        self.log.debug("Starting travel")
+        self.log.debug("Start position: %s"%(repr(start_pos)))
+        self.log.debug("Start date: %s"%(self.date))
+        self.log.debug("End date: %s"%(eph.date(end_date)))
+        self.log.debug("Model: %s"%(repr(model)))
+
+        while self.date < end_date and len(observed) <= model.max_sources:
+            self.log.debug("Calculating possible paths")
+            self.date = start_date
             start_pos = self.az,self.alt,self.wrap
             sources = field.get_visible(self,exclude=observed)
-            possible_paths = []
             
+            self.log.debug("Number of available targets: %d"%len(sources))
+            self.log.debug("Targets: %s"%(",".join([i.name for i in sources])))
+            
+            if not sources:
+                break
+
+            possible_paths = []
             for source in sources:
-                path = AttrDict(origin=current_source,target=source,start_date=self.date)
+                
+                self.log.debug("Calculating parameters of path to %s"%source.name)
+                path = AttrDict()
+                path.origin = current_source
+                path.target = source
+                path.start_date= self.date
+                path.pre_drive_pos = self.az,self.alt,self.wrap
+                
                 self.az,self.alt,self.wrap = start_pos
                 az_dist,alt_dist,duration = self.drive_to(source,simulate=True)
+                path.pre_obs_pos = source.az,source.alt,self.wrap
+                
+                self.log.debug("Az, Alt distances: %s"%(str((az_dist,alt_dist))))
+                self.log.debug("Drive time: %f"%duration)
+
                 path.drive_time = duration
                 path.maintenance_cost = self.get_maintenance_cost(az_dist,alt_dist)
+
+                self.log.debug("Maintenance cost: %f"%path.maintenance_cost)
+
                 obs_djd = self.date + duration * SEC_TO_DAYS
+                
+                self.log.debug("Obs date: %s"%obs_djd)
+                
                 path.obs_start_date = obs_djd
+                
+                self.log.debug("Path stats: %s"%pformat(path))
+                
                 possible_paths.append(path)
                 
             path = optimiser.select_path(possible_paths)
             current_source = path.target
-            path.start_wrap = self.wrap
             self.drive_to(current_source)
+            path.pre_obs_pos = self.az,self.alt,self.wrap
             self.observe(current_source)
-            path.end_wrap = self.wrap
+            path.post_obs_pos = self.az,self.alt,self.wrap
             path.obs_end_date = self.date
+            start_date = self.date
             tour.append(path)
             observed.append(current_source)
         self.last_tour = tour
 
     
-def telescope_params_from_config(config_file):
-    config = ConfigParser()
-    config.read(config_file)
-    return config
 
-def create_telescope(config)
+def create_telescope(config):
     lat = config.getfloat("location","latitude")
     lon = config.getfloat("location","longitude")
     alt = config.getfloat("location","elevation")
@@ -170,10 +195,9 @@ def create_telescope(config)
         alt_rate = config.getfloat("parameters","alt_drive_rate")
         max_alt = config.getfloat("parameters","max_alt")
         min_alt = config.getfloat("parameters","min_alt")
-        return partial(AzAltTelescope,lat,lon,alt,hor,nwrap,swrap,az_rate,alt_rate)
+        az_cost = config.getfloat("parameters","az_drive_cost")
+        alt_cost = config.getfloat("parameters","alt_drive_cost")
+        return AzAltTelescope(lat,lon,alt,hor,nwrap,swrap,az_rate,alt_rate,az_cost,alt_cost)
     else:
         raise NotImplemented(mount)
 
-    def telescope_from_config(config_file):
-        return telescope_type_from_config(config_file)()
-    

@@ -63,8 +63,6 @@ class ViewerWindow(tk.Frame):
         self.ax.set_theta_zero_location("N")
         self.ax.set_theta_direction(-1)
         self.canvas.show()
-        self.points = None
-        self.path = None
 
     def plot_sources(self,sources):
         if self.points:
@@ -73,11 +71,19 @@ class ViewerWindow(tk.Frame):
         self.points = self.ax.scatter(az,za)
         self.ax.set_rlim(0,np.pi/2)
 
-    def plot_path(self,sources):
-        if self.path:
-            self.path.remove()
-        az,za = np.array([(i.az,np.pi/2-i.alt) for i in sources]).transpose()
-        self.path = self.ax.plot(az,za)[0]
+    def plot_tour(self,tour):
+        self.ax.cla()
+        self.ax.set_theta_zero_location("N")
+        self.ax.set_theta_direction(-1)
+        azalt = []
+        for path in tour:
+           azalt.append(path.pre_drive_pos[:2])
+           azalt.append(path.pre_obs_pos[:2])
+           azalt.append(path.post_obs_pos[:2])
+        az,alt = np.array(azalt).transpose()   
+        za = -1*alt + np.pi/2
+        self.ax.scatter(az[0],za[0],s=40,c='r')
+        self.ax.plot(az,za,marker='o',markersize=3)
         self.canvas.draw()
                 
             
@@ -88,10 +94,10 @@ class BestPathWindow(tk.Frame):
         self.path = tk.Listbox(self,height=20,borderwidth=4)
         self.path.pack(fill=tk.BOTH,expand=1)
 
-    def set_path(self,sources):
+    def set_tour(self,tour):
         self.path.delete(0,tk.END)
-        for source in sources:
-            self.path.insert(tk.END,"  %s"%source.name)
+        for path in tour:
+            self.path.insert(tk.END,"  %s"%path.target.name)
 
     
 class ControlsWindow(tk.Frame):
