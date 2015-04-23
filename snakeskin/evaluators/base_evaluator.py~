@@ -1,0 +1,4 @@
+
+
+class BaseEvaluator(object):
+    def __init__(self,path,telescope)
