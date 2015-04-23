@@ -1,0 +1,3 @@
+from telescopes import *
+from sources import *
+from pheremones import *

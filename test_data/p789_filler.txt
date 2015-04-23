@@ -1,0 +1,10 @@
+J1056-7118; J J1056-7118; tobs 1800.000000; mode psr; d4_tsub 30
+J1103-5355; J J1103-5355; tobs 1800.000000; mode psr; d4_tsub 30
+J1337-6423; J J1337-6423; tobs 1800.000000; mode psr; d4_tsub 30
+J1525-5544; J J1525-5544; tobs 1800.000000; mode psr; d4_tsub 30
+J1622-6617; J J1622-6617; tobs 1800.000000; mode psr; d4_tsub 30
+J1528-3835; J J1528-3835; tobs 2130.000000; mode psr; d4_tsub 30
+J1755-3715; J J1755-3715; tobs 1800.000000; mode psr; d4_tsub 30
+J1719-1432; J J1719-1432; tobs 1800.000000; mode psr; d4_tsub 30
+J1811-2404; J J1811-2404; tobs 1800.000000; mode psr; d4_tsub 30
+J1825-0322; J J1825-0322; tobs 3600.000000; mode psr; d4_tsub 30

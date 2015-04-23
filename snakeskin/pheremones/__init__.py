@@ -1,0 +1,2 @@
+from base_pheremones import BasePheremoneModel
+from maxmin_pheremones import MaxMinPheremoneModel
