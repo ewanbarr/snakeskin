@@ -28,7 +28,12 @@ class AzAltMountTelescope(BaseTelescope):
             "mid": (south_wrap+pi*2+north_wrap)/2. - pi
             }
         self.wrap = 'north'
-    
+
+    def set_position(self,az,alt,wrap='north'):
+        self.az = az
+        self.alt = alt
+        self.wrap = wrap
+        
     def __unwrap_vector(self,az):
         az[(az>self.wrap_limits['north'])
            | ((az>self.wrap_limits['south']+pi*2)
@@ -42,22 +47,42 @@ class AzAltMountTelescope(BaseTelescope):
             az -= pi*2
         return az
 
-    def drive_time(self,az,alt):
+    def __switch_wrap(self):
+        if self.wrap == "north":
+            self.wrap = "south"
+        elif self.wrap == "south":
+            self.wrap = "north"
+        
+    def __az_drive(self,az):
         if hasattr(az,"__iter__"):
             az = self.__unwrap_vector(az)
         else:
             az = self.__unwrap(az)
-        
-        az_drive_time = abs((self.az - az) * self.az_rate)
-        alt_drive_time = abs((self.alt-alt) * self.alt_rate)
-        return np.vstack((az_drive_time,alt_drive_time)).max(axis=0)
+        unwrapped_az = self.__unwrap(self.az)
+        return unwrapped_az,az
 
-    def allure(self,sources):
-        lmst = self.sidereal_time()
-        az,alt = sources.azalt(self) #<--- need to cache these calls on source side
-        response = self.sky_response(az,alt)
-        return sources.value(self.date)*response
+    def path_to(self,az,alt,npts=100):
+        az0,az1= self.__az_drive(az)
+        alt0,alt1 = self.alt,alt
+        az_path = np.linspace(az0,az1,npts)
+        alt_path = np.linspace(alt0,alt1,npts)
+        return az_path,alt_path
+
+    def drive_time(self,az,alt):
+        az0,az1 = self.__az_drive(az)
+        az_drive_time = abs((az0 - az1) / self.az_rate)
+        alt_drive_time = abs((self.alt-alt) / self.alt_rate)
+        return np.vstack((az_drive_time,alt_drive_time)).max(axis=0)
     
+    def drive_to(self,source,tolerance=0.01):
+        az0 = self.az
+        super(AzAltMountTelescope,self).drive_to(source,tolerance)
+        az1 = self.az
+        mid = self.wrap_limits["mid"]
+        if (az0 < mid < az1) or (az0 > mid > az1):
+            self.__switch_wrap()
+            
+        
     
         
     

@@ -1,5 +1,7 @@
 import ephem as eph
-from snakeskin.sources.decorators import position_cache
+import numpy as np
+
+SEC_TO_SIDRAD = 7.292170441953352e-05
 
 class Source(eph.FixedBody):
     def __init__(self,ra,dec,tobs=1800.0,name="none",value=1.,obs_config=None):
@@ -9,14 +11,27 @@ class Source(eph.FixedBody):
         self._ra = coords.ra
         self._dec = coords.dec
         self.tobs = tobs
-        self._value = value
+        self.value = value
         self.obs_config = obs_config
 
-    @position_cache
-    def azalt(self,telescope):
+    def azalt(self,telescope,dt=0.0):
+        telescope.progress_time(dt)
         self.compute(telescope)
+        telescope.reverse_time(dt)
         return self.az,self.alt
     
-    def value(self):
-        return self._value
-    
+    def trail(self,telescope,duration=600.0):
+        start_lmst = telescope.sidereal_time()
+        end_lmst = SEC_TO_SIDRAD*duration
+        lmst = np.linspace(start_lmst,end_lmst,100)%(np.pi*2)
+        lat = telescope.lat
+        ha = lmst-self.ra
+        cosha = np.cos(ha)
+        coslat = np.cos(lat)
+        sinlat = np.sin(lat)
+        alt = np.arcsin(sinlat*np.sin(self.dec)
+                        +coslat*np.cos(self.dec)*cosha)
+        az = np.arctan2(np.sin(ha),
+                        (cosha*sinlat
+                         - np.tan(self.dec)*coslat))+np.pi
+        return az,alt

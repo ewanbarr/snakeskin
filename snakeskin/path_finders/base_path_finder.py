@@ -24,6 +24,27 @@ class BasePathFinder(object):
                 return idx
         return -1
 
+    def __allure(self,az,alt,sources):
+        dt = self.telescope.drive_time(az,alt)
+        sky_weight = self.telescope.sky_response(az,alt)
+        return sources.value * sky_weight / dt
+
+    def __pheremones(self,current_idx,valid_idxs):
+        keys = [(current_idx,idx) for idx in valid_idxs]
+        return np.array([self.pheremones[key] for key in keys])
+
+    def recorded_drive(self,source):
+        az,alt = source.azalt(self.telescope)
+        azpath,altpath = self.telescope.path_to(az,alt)
+        self.telescope.drive_to(source,tolerance=0.01)
+        return (azpath,altpath)
+        
+    def recorded_observation(self,source):
+        az,alt = source.azalt(self.telescope,dt=source.tobs)
+        azpath,altpath = self.telescope.path_to(az,alt)
+        self.telescope.observe(source)
+        return (azpath,altpath)
+        
     def find_path(self):
         self.__observed = np.zeros(self.sources.size).astype('bool')
         up = np.zeros(len(self.sources)).astype('bool')
@@ -31,24 +52,24 @@ class BasePathFinder(object):
         path = []
         while not self.__end_condition():
             sources = self.sources[~self.__observed]
-            sources,az,alt = self.telescope.observable(sources)
+            mask = self.telescope.observable(sources)
+            sources = sources[mask]
+            az,alt = sources.azalt(self.telescope)
+            
             if sources.size == 0:
                 self.telescope.progress_time(600.0)
                 continue
             
-            dt = self.telescope.drive_time(az,alt)
-            sky_weight = self.telescope.sky_response(az,alt)
-            allure = sources.value * sky_weight / dt
-            keys = [(current_idx,idx) for idx in sources.idx]
-            pheremones = np.array([self.pheremones[key] for key in keys])
+            allure = self.__allure(az,alt,sources)
+            pheremones = self.__pheremones(current_idx,sources.idx)
             probs = self.__probability(pheremones,allure)
             idx = self.__select(probs)
             current_idx = sources[idx].idx
             new_source = sources[idx].src_obj
+            path.append(new_source)
             self.__observed[current_idx] = True
             self.telescope.drive_to(new_source)
             self.telescope.observe(new_source)
-            path.append(new_source)
         return path
             
             

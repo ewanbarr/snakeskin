@@ -29,6 +29,7 @@ class ParameterController(tk.Frame):
     def validator(self,value,last_value):
         if not value.strip() and not self.value_type == str:
             self.set_bg('red')
+            self.bell()
             return True
         else:
             try:

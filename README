@@ -1,0 +1,9 @@
+Note:
+
+Telescopes should check if a drive is observable as each will have its own weird set of limits
+
+methods:
+
+observable -- should return bool(eans)
+drive_to -- error if not possible
+observe -- error if source enters unobservable area
