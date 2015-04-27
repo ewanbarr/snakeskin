@@ -23,6 +23,8 @@ ax = plt.subplot(111,polar=True)
 ax.set_theta_zero_location('N')
 ax.set_theta_direction(-1)
 
+print evaluator.value,evaluator.drive_time,evaluator.idle_time
+
 for drive in evaluator.drive_paths:
     az,alt = drive
     za = np.pi/2 - alt

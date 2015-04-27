@@ -5,10 +5,11 @@ DEFAULT_PHEREMONE_MODEL = {
     "value_multiplier":1.0
 }
 
-class BasePheremoneModel(object):
+class BasePheremoneModel(dict):
     def __init__(self,**params):
-        self.parameters = DEFAULT_PHEREMONE_MODEL
+        self.parameters = DEFAULT_PHEREMONE_MODEL.copy()
         self.parameters.update(params)
+        super(BasePheremoneModel,self).__init__()
 
     def __missing__(self,key):
         default = self.parameters['initial_level']
@@ -22,7 +23,9 @@ class BasePheremoneModel(object):
         
     def deposit(self,tour,cost):
         value = self.parameters['value_multiplier']/cost
-        for path in tour:
-            key = path.origin,path.target
+        start = None
+        for source in tour:
+            key = start,source.name
             self.pheremones[key]+=value
+            start = source.name
         

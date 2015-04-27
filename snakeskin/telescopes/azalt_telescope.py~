@@ -28,7 +28,12 @@ class AzAltMountTelescope(BaseTelescope):
             "mid": (south_wrap+pi*2+north_wrap)/2. - pi
             }
         self.wrap = 'north'
-    
+
+    def set_position(self,az,alt,wrap='north'):
+        self.az = az
+        self.alt = alt
+        self.wrap = wrap
+        
     def __unwrap_vector(self,az):
         az[(az>self.wrap_limits['north'])
            | ((az>self.wrap_limits['south']+pi*2)

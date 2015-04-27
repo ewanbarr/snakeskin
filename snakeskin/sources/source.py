@@ -1,7 +1,6 @@
 import ephem as eph
 import numpy as np
-
-SEC_TO_SIDRAD = 7.292170441953352e-05
+from snakeskin.constants import SEC_TO_SIDRAD
 
 class Source(eph.FixedBody):
     def __init__(self,ra,dec,tobs=1800.0,name="none",value=1.,obs_config=None):

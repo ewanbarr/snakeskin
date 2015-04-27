@@ -1,8 +1,6 @@
 import ephem as eph
 import numpy as np
-pi = np.pi
-
-SEC_TO_DAYS = 1/86400.
+from snakeskin.constants import SEC_TO_DAYS
 
 class BaseTelescope(eph.Observer):
     def __init__(self,
@@ -22,6 +20,15 @@ class BaseTelescope(eph.Observer):
         self.alt = alt
         self.date = date
         self.compute_pressure()
+        self.init_params = {
+            "date":self.date,
+            "az":self.az,
+            "alt":self.alt
+            }
+
+    def reset(self):
+        for key,val in self.init_params.items():
+            self.__setattr__(key,val)
         
     def set_position(self,az,alt):
         self.az = az

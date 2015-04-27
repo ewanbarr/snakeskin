@@ -28,6 +28,7 @@ class AzAltMountTelescope(BaseTelescope):
             "mid": (south_wrap+pi*2+north_wrap)/2. - pi
             }
         self.wrap = 'north'
+        self.init_params.update(wrap=self.wrap)
 
     def set_position(self,az,alt,wrap='north'):
         self.az = az

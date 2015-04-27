@@ -1,6 +1,7 @@
-from snakeskin.sources import Source
 import numpy as np
 import ephem as eph
+from snakeskin.sources import Source
+from snakeskin.constants import SEC_TO_SIDRAD
 
 SF_DTYPE = [
     ("idx","int32"),
@@ -11,8 +12,6 @@ SF_DTYPE = [
     ("value","float32"),
     ("src_obj","object")
     ]
-
-SEC_TO_SIDRAD = 7.292170441953352e-05
 
 class SourceField(np.recarray):
     def __init__(self,*args,**kwargs):

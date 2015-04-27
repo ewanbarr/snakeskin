@@ -1,0 +1,4 @@
+
+#number of days in 1 second
+SEC_TO_DAYS = 1/86400.
+

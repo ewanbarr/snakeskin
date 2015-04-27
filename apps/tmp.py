@@ -11,7 +11,7 @@ eval_telescope = s.Parkes()
 sources = s.source_field_from_file(sys.argv[1])
 pheremones = s.BasePheremoneModel()
 path_finder = s.BasePathFinder(telescope,sources,pheremones,params)
-path = path_finder.find_path()
+path,cost = path_finder.find_path()
 
 telescope = s.Parkes()
 evaluator = s.BaseEvaluator(eval_telescope,path)

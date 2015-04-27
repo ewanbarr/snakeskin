@@ -56,16 +56,6 @@ class SourceField(np.recarray):
         az = np.arctan2(np.sin(ha),
                         (cosha*sinlat 
                          - np.tan(self.dec)*coslat))+np.pi
-        
-        az_,alt_ = self.__test(telescope,dt)
-        #if not all(np.isclose(az,az_,atol=0.01)):
-        #    print "FAIL"
-        #    print az,az_,dt
-
-        if not all( np.isclose(alt,alt_,atol=0.1) ):
-            print "FAIL"
-            print alt,alt_,dt
-        
         return az,alt
     
     

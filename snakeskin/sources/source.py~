@@ -22,7 +22,7 @@ class Source(eph.FixedBody):
     
     def trail(self,telescope,duration=600.0):
         start_lmst = telescope.sidereal_time()
-        end_lmst = SEC_TO_SIDRAD*duration
+        end_lmst = start_lmst+SEC_TO_SIDRAD*duration
         lmst = np.linspace(start_lmst,end_lmst,100)%(np.pi*2)
         lat = telescope.lat
         ha = lmst-self.ra
