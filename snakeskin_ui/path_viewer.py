@@ -1,30 +1,23 @@
 import Tkinter as tk
 import numpy as np
-import matplotlib as mpl
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from snakeskin_ui.custom_widgets import PlotWindow
 
-class Viewer(tk.Frame):
+class AzElvPathViewer(PlotWindow):
     def __init__(self,parent):
-        tk.Frame.__init__(self,parent)
-        self.parent = parent
-        self.fig,self.ax = self.__generate_axes()
-        self.canvas = FigureCanvasTkAgg(self.fig,self.parent)
-        self.plot_widget = self.canvas.get_tk_widget()
-        self.plot_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-        self.canvas.show()
-
-    def __generate_axes(self):
-        fig = mpl.figure.Figure()
-        ax = fig.add_subplot(111,polar=True)
+        PlotWindow.__init__(self,parent)
+                
+    def setup_axes(self):
+        ax = self.fig.add_subplot(111,polar=True)
         ax.set_theta_zero_location('N')
         ax.set_theta_direction(-1)
         ax.set_ylabel("ZA")
         ax.set_xlabel("Az")
         ax.patch.set_facecolor('0.5')
-        return fig,ax
+        return [ax]
     
     def draw_za_boundary(self,za,theta,c):
-        self.ax.fill(theta,za,c)
+        ax = self.axes[0]
+        ax.fill(theta,za,c)
         self.canvas.draw()
 
     def draw_zenith_hole(self,min_za):
@@ -38,6 +31,7 @@ class Viewer(tk.Frame):
 
 if __name__ == "__main__":
     root = tk.Tk()
-    viewer = Viewer(root)
+    viewer = AzElvPathViewer(root)
     viewer.pack()
+    
     root.mainloop()
