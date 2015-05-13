@@ -32,7 +32,7 @@ class DragDropListBox(Tkinter.Listbox):
 if __name__ == '__main__':
   tk = Tkinter.Tk( )
   length = 10
-  dd = DDList(tk, height=length)
+  dd = DragDropListBox(tk, height=length)
   dd.pack( )
   for i in xrange(length):
     dd.insert(Tkinter.END, str(i))
