@@ -13,24 +13,22 @@ class Source(eph.FixedBody):
         self.value = value
         self.obs_config = obs_config
 
-    def azalt(self,telescope,dt=0.0):
-        telescope.progress_time(dt)
+    def azalt(self,telescope):
         self.compute(telescope)
-        telescope.reverse_time(dt)
         return self.az,self.alt
-    
-    def trail(self,telescope,duration=600.0):
-        start_lmst = telescope.sidereal_time()
-        end_lmst = start_lmst+SEC_TO_SIDRAD*duration
-        lmst = np.linspace(start_lmst,end_lmst,100)%(np.pi*2)
+
+    def path(self,telescope,lmst):
         lat = telescope.lat
         ha = lmst-self.ra
         cosha = np.cos(ha)
         coslat = np.cos(lat)
         sinlat = np.sin(lat)
-        alt = np.arcsin(sinlat*np.sin(self.dec)
-                        +coslat*np.cos(self.dec)*cosha)
-        az = np.arctan2(np.sin(ha),
-                        (cosha*sinlat
-                         - np.tan(self.dec)*coslat))+np.pi
+        alt = np.arcsin(sinlat*np.sin(self.dec)+coslat*np.cos(self.dec)*cosha)
+        az = np.arctan2(np.sin(ha),(cosha*sinlat - np.tan(self.dec)*coslat))+np.pi
         return az,alt
+
+    def trail(self,telescope,duration=600.0):
+        start_lmst = telescope.sidereal_time()
+        end_lmst = start_lmst+SEC_TO_SIDRAD*duration
+        lmst = np.linspace(start_lmst,end_lmst,100)%(np.pi*2)
+        return path(telescope,lmst)

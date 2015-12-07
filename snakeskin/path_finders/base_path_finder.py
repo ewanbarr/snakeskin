@@ -3,7 +3,7 @@ from snakeskin.constants import SEC_TO_DAYS
 
 DEFAULT_PATHFINDER_PARAMS = {
     'pheremone_weight':1.0,
-    'allure_weight':1.0
+    'allure_weight':20.0
 }
 
 class BasePathFinder(object):
@@ -16,7 +16,7 @@ class BasePathFinder(object):
         self.__wait = 600.0
         
     def __end_condition(self):
-        return self.__observed.sum() == self.sources.size
+        return all(self.sources.data.observed)
 
     def __probability(self,pheremones,allure):
         a = self.parameters['pheremone_weight']
@@ -54,32 +54,27 @@ class BasePathFinder(object):
         return (azpath,altpath)
         
     def find_path(self):
-        start = self.telescope.date
-        self.__observed = np.zeros(self.sources.size).astype('bool')
-        up = np.zeros(len(self.sources)).astype('bool')
-        current_source_name = None        
         path = []
+        current_source = None
+        start = self.telescope.date
         while not self.__end_condition():
-            sources = self.sources[~self.__observed]
-            mask = self.telescope.observable(sources)
-            sources = sources[mask]
-            az,alt = sources.azalt(self.telescope)
-            
-            if sources.size == 0:
-                self.telescope.progress_time(600.0)
+            lmst = self.telescope.sidereal_time()
+            sources,az,alt = self.sources.observable(lmst)
+            if sources is None:
+                self.telescope.progress_time(self.__wait)
                 continue
-            
             allure = self.__allure(az,alt,sources)
-            pheremones = self.__pheremones(current_source_name,sources.name)
+            print allure
+            name = None if current_source is None else current_source.name
+            pheremones = self.__pheremones(name,sources.name)
             probs = self.__probability(pheremones,allure)
             idx = self.__select(probs)
             current_source = sources[idx].src_obj
             path.append(current_source)
-            self.__observed[sources.idx[idx]] = True
+            self.sources.mark_as_observed(sources[idx].idx)
             self.telescope.drive_to(current_source)
             self.telescope.observe(current_source)
         end = self.telescope.date
-        
         tobs = sum([i.tobs for i in path])
         total_time = (end-start) / SEC_TO_DAYS
         drive_time = total_time - tobs

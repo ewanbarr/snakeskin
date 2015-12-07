@@ -26,6 +26,6 @@ class BasePheremoneModel(dict):
         start = None
         for source in tour:
             key = start,source.name
-            self.pheremones[key]+=value
+            self[key]+=value
             start = source.name
         

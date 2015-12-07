@@ -3,12 +3,14 @@ from multiprocessing import Process
 DEFAULT_MODEL = {"num_agents":20}
 
 class BaseColony(object):
-    def __init__(self,sources,telescope,path_finder,pheremones,model=DEFAULT_MODEL):
+    def __init__(self,sources,telescope,path_finder,pheremones,model=None):
         self.sources = sources
         self.telescope = telescope
         self.path_finder = path_finder
         self.pheremones = pheremones
-        self.model = model.update(DEFAULT_MODEL)
+        self.model = DEFAULT_MODEL.copy()
+        if model is not None:
+            self.model.update(model)
         self.best_path = None
         self.best_score = 0.0
 

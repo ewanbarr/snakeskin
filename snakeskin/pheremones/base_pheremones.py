@@ -1,7 +1,7 @@
 
 DEFAULT_PHEREMONE_MODEL = {
     "initial_level":1,
-    "evaporation_rate":0.95,
+    "evaporation_rate":0.9995,
     "value_multiplier":1.0
 }
 

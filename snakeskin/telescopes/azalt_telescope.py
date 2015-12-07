@@ -38,7 +38,7 @@ class AzAltMountTelescope(BaseTelescope):
     def __unwrap_vector(self,az):
         az[(az>self.wrap_limits['north'])
            | ((az>self.wrap_limits['south']+pi*2)
-              & (self.wrap=='north'))] -= pi
+              & (self.wrap=='north'))] -= pi*2
         return az
         
     def __unwrap(self,az):
@@ -83,8 +83,9 @@ class AzAltMountTelescope(BaseTelescope):
         if (az0 < mid < az1) or (az0 > mid > az1):
             self.__switch_wrap()
             
-        
-    
+    def visible(self,az,alt):
+        return (alt > self.horizon) & (alt<self.zenith_limit)
+            
         
     
         

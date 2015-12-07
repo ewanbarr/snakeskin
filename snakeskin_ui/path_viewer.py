@@ -2,6 +2,7 @@ import Tkinter as tk
 import numpy as np
 from snakeskin_ui.custom_widgets import PlotWindow
 
+
 class AzElvPathViewer(PlotWindow):
     def __init__(self,parent):
         PlotWindow.__init__(self,parent)
@@ -27,6 +28,9 @@ class AzElvPathViewer(PlotWindow):
 
     def draw_horizon(self,za,theta):
         self.draw_za_boundary(za,theta,'w')
+        
+
+    
         
 
 if __name__ == "__main__":

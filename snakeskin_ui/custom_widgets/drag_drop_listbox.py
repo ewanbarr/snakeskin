@@ -33,7 +33,7 @@ if __name__ == '__main__':
   tk = Tkinter.Tk( )
   length = 10
   dd = DragDropListBox(tk, height=length)
-  dd.pack( )
+  dd.pack(fill=tk.BOTH,extend=1)
   for i in xrange(length):
     dd.insert(Tkinter.END, str(i))
   tk.mainloop()

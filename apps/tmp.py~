@@ -1,40 +1,33 @@
 import sys
-sys.path.append("../")
 import numpy as np
-import snakeskin as s
+from snakeskin.telescopes import Parkes
+from snakeskin.sources import source_loaders
+from snakeskin.path_finders import base_path_finder as bpf
+from snakeskin.pheremones.base_pheremones import BasePheremoneModel
 
-params = {"pheremone_weight":1.0,
-          "allure_weight":0.0}
 
-telescope = s.Parkes()
-eval_telescope = s.Parkes()
-sources = s.source_field_from_file(sys.argv[1])
-pheremones = s.BasePheremoneModel()
-path_finder = s.BasePathFinder(telescope,sources,pheremones,params)
-path = path_finder.find_path()
+pher = BasePheremoneModel()
+pks = parkes.Parkes()
+p = source_loaders.source_field_from_file("../test_data/p789_with_values.txt",pks)
+path_finder = bpf.BasePathFinder(pks,p,pher)
 
-telescope = s.Parkes()
-evaluator = s.BaseEvaluator(eval_telescope,path)
-evaluator.evaluate()
+paths = []
+costs = []
+nants = 20
+its = 20
 
-import matplotlib.pyplot as plt
-
-ax = plt.subplot(111,polar=True)
-ax.set_theta_zero_location('N')
-ax.set_theta_direction(-1)
-
-print evaluator.value,evaluator.drive_time,evaluator.idle_time
-
-for drive in evaluator.drive_paths:
-    az,alt = drive
-    za = np.pi/2 - alt
-    ax.plot(az,za,c='b',lw=1)
-
-for obs in evaluator.tracks:
-    az,alt = obs
-    za = np.pi/2 - alt
-    ax.plot(az,za,c='r',lw=2)
-
-plt.show()
+for jj in range(its):
+    for ii in range(nants):
+        p.reset_observed_status()
+        path_finder.telescope.reset()
+        path,cost = path_finder.find_path()
+        paths.append(path)
+        costs.append(cost)
+    for path,cost in zip(paths,costs):
+        print cost
+        pher.deposit(path,cost)
+    pher.evaporate()
+    paths = []
+    costs = []
 
 
